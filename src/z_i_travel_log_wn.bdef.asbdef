@@ -1,0 +1,87 @@
+managed; //implementation in class zbp_i_travel_log_wn unique;
+//strict ( 2 );
+
+define behavior for z_i_travel_log_wn alias Travel
+implementation in class zbp_i_travel_log_wn unique
+persistent table ztravel_log_wn
+lock master
+authorization master ( instance )
+etag master last_changed_at
+{
+  // Administratative fields: Read only
+  field ( readonly ) last_changed_at, last_changed_by, create_at, created_by;
+  // Mandatory fields that are required to create a travel
+  field ( mandatory ) agency_id, overall_status, booking_fee, currency_code;
+  // dynamic field control
+  field ( features : instance ) travel_id;
+
+  create ( authorization : global );
+  update;
+  delete;
+
+  //Validations
+  validation ValidateCustomer on save { field customer_id; }
+  validation ValidateDates on save { field begin_date, end_date; }
+  validation ValidateStatus on save { field overall_status; }
+
+  // Actions
+  action ( features : instance ) AcceptTravel result [1] $self;
+  action ( features : instance ) RejectTravel result [1] $self;
+
+  //  static action CreateTravelByTemplate  external 'CreateTravelWithCopy' result [1] $self;
+  action CreateTravelByTemplate result [1] $self;
+
+  association _Booking { create; }
+
+  //Mapping
+  mapping for ztravel_log_wn corresponding;
+
+}
+
+define behavior for z_i_booking_log_wn alias Booking
+implementation in class zbp_i_booking_log_wn unique
+persistent table zbooking_log_wn
+//lock dependent ( travel_id = travel_id )
+lock dependent by _Travel
+authorization dependent by _Travel
+etag master last_changed_at
+{
+  //Static fields control
+  field ( readonly ) travel_id;
+  field ( mandatory ) carrier_id, connection_id, flight_date, booking_status;
+  update;
+  delete;
+
+  // Validations
+  validation ValidateStatus on save { field booking_status; }
+
+  // Determinations
+  determination CalculateTotalFlightPrice on modify { field flight_price, currency_code; }
+
+  association _Travel;
+  association _BookingSupplement { create; }
+  mapping for zbooking_log_wn corresponding;
+}
+
+define behavior for z_i_booksuppl_log_wn alias Supplement
+implementation in class zbp_i_booksuppl_log_wn unique
+//persistent table zbooksuppl_log_w
+with unmanaged save
+lock dependent by _Travel
+authorization dependent by _Travel
+etag master last_changed_at
+
+{
+  update;
+  delete;
+
+  // Determinations
+  determination CalculateTotalFlightPrice on modify { field price, currency; }
+
+  //  field ( readonly ) travel_id, booking_id, booking_supplement_id;
+  field ( readonly ) travel_id, booking_id;
+  field ( mandatory ) supplement_id, price;
+  association _Travel;
+  association _Booking;
+  mapping for zlog_log_wn corresponding;
+}

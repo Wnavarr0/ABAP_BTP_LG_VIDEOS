@@ -1,0 +1,5 @@
+CLASS zbp_i_booking_log_wn DEFINITION PUBLIC ABSTRACT FINAL FOR BEHAVIOR OF z_i_travel_log_wn.
+ENDCLASS.
+
+CLASS zbp_i_booking_log_wn IMPLEMENTATION.
+ENDCLASS.
